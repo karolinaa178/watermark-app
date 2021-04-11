@@ -3,21 +3,27 @@ const inquirer = require('inquirer');
 const fs = require('fs');
 
 const addTextWatermarkToImage = async function(inputFile, outputFile, text) {
-  const image = await Jimp.read(inputFile);
-  const font = await Jimp.loadFont(Jimp.FONT_SANS_32_BLACK);
-  const textData = {
+  try {
+    const image = await Jimp.read(inputFile);
+    const font = await Jimp.loadFont(Jimp.FONT_SANS_32_BLACK);
+    const textData = {
       text: text,
       alignmentX: Jimp.HORIZONTAL_ALIGN_CENTER,
       alignmentY: Jimp.VERTICAL_ALIGN_MIDDLE,
-  };
+    };
 
-  image.print(font, 0, 0, textData, image.getWidth(), image.getHeight());
-  await image.quality(100).writeAsync(outputFile);
-  console.log('Your file with watermark has been successfully saved!');
+    image.print(font, 0, 0, textData, image.getWidth(), image.getHeight());
+    await image.quality(100).writeAsync(outputFile);
+    console.log('Your file with watermark has been successfully saved!');
+  }
+  catch {
+    console.log('Something went wrong... Try again');
+  }
   startApp();
 };
 
 const addImageWatermarkToImage = async function(inputFile, outputFile, watermarkFile) {
+  try {    
     const image = await Jimp.read(inputFile);
     const watermark = await Jimp.read(watermarkFile);
     const x = image.getWidth() / 2 - watermark.getWidth() / 2;
@@ -29,6 +35,10 @@ const addImageWatermarkToImage = async function(inputFile, outputFile, watermark
     });
     await image.quality(100).writeAsync(outputFile);
     console.log('Your file with watermark has been successfully saved!');
+  }
+  catch {
+    console.log('Something went wrong... Try again');
+  }  
     startApp();
   };
 
@@ -60,6 +70,8 @@ const addImageWatermarkToImage = async function(inputFile, outputFile, watermark
       type: 'list',
       choices: ['Text watermark', 'Image watermark'],
     }]);
+
+    const inputFilePath = './img/' + options.inputImage;
 
     if(options.watermarkType === 'Text watermark') {
       const text = await inquirer.prompt([{
