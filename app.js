@@ -1,5 +1,6 @@
 const Jimp = require('jimp');
 const inquirer = require('inquirer');
+const fs = require('fs');
 
 const addTextWatermarkToImage = async function(inputFile, outputFile, text) {
   const image = await Jimp.read(inputFile);
@@ -12,6 +13,8 @@ const addTextWatermarkToImage = async function(inputFile, outputFile, text) {
 
   image.print(font, 0, 0, textData, image.getWidth(), image.getHeight());
   await image.quality(100).writeAsync(outputFile);
+  console.log('Your file with watermark has been successfully saved!');
+  startApp();
 };
 
 const addImageWatermarkToImage = async function(inputFile, outputFile, watermarkFile) {
@@ -25,6 +28,8 @@ const addImageWatermarkToImage = async function(inputFile, outputFile, watermark
       opacitySource: 0.5,
     });
     await image.quality(100).writeAsync(outputFile);
+    console.log('Your file with watermark has been successfully saved!');
+    startApp();
   };
 
   const prepareOutputFilename = (filename) => {
@@ -63,7 +68,10 @@ const addImageWatermarkToImage = async function(inputFile, outputFile, watermark
         message: 'Type your watermark text:',
       }]);
       options.watermarkText = text.value;
-      addTextWatermarkToImage('./img/' + options.inputImage, './img/' + prepareOutputFilename(options.inputImage), options.watermarkText);
+
+      if (fs.existsSync(inputFilePath)) {
+        addTextWatermarkToImage(inputFilePath, './img/' + prepareOutputFilename(options.inputImage), options.watermarkText);
+      } else console.log('Something went wrong... Try again');
     }
     else {
       const image = await inquirer.prompt([{
@@ -73,9 +81,12 @@ const addImageWatermarkToImage = async function(inputFile, outputFile, watermark
         default: 'logo.png',
       }]);
       options.watermarkImage = image.filename;
-      addImageWatermarkToImage('./img/' + options.inputImage, './img/' + prepareOutputFilename(options.inputImage), './img/' + options.watermarkImage);
+      const watermarkPath = './img' + options.watermarkImage;
+
+      if (fs.existsSync(inputFilePath) && fs.existsSync(watermarkPath)) {
+        addImageWatermarkToImage(inputFilePath, './img/' + prepareOutputFilename(options.inputImage), watermarkPath);
+      } else console.log('Something went wrong... Try again');
     }
-  
   };
   
   startApp();
