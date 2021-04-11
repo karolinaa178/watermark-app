@@ -1,0 +1,11 @@
+{
+  "name": "watermarknodeapp",
+  "version": "1.0.0",
+  "description": "app for adding watermark to image",
+  "main": "app.js",
+  "license": "MIT",
+  "dependencies": {
+    "inquirer": "6.5.0",
+    "jimp": "0.6.4"
+  }
+}
