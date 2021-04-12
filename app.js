@@ -2,9 +2,10 @@ const Jimp = require('jimp');
 const inquirer = require('inquirer');
 const fs = require('fs');
 
-const addTextWatermarkToImage = async function(inputFile, outputFile, text) {
+const addTextWatermarkToImage = async function(inputFile, outputFile, text, action) {
   try {
-    const image = await Jimp.read(inputFile);
+    const rawImage = await Jimp.read(inputFile);
+    const image = action ? action(rawImage) : rawImage;
     const font = await Jimp.loadFont(Jimp.FONT_SANS_32_BLACK);
     const textData = {
       text: text,
@@ -22,9 +23,10 @@ const addTextWatermarkToImage = async function(inputFile, outputFile, text) {
   startApp();
 };
 
-const addImageWatermarkToImage = async function(inputFile, outputFile, watermarkFile) {
-  try {    
-    const image = await Jimp.read(inputFile);
+const addImageWatermarkToImage = async function(inputFile, outputFile, watermarkFile, action) {
+  try {
+    const rawImage = await Jimp.read(inputFile);   
+    const image = action ? action(rawImage) : rawImage;
     const watermark = await Jimp.read(watermarkFile);
     const x = image.getWidth() / 2 - watermark.getWidth() / 2;
     const y = image.getHeight() / 2 - watermark.getHeight() / 2;
@@ -59,19 +61,54 @@ const addImageWatermarkToImage = async function(inputFile, outputFile, watermark
     // if answer is no, just quit the app
     if(!answer.start) process.exit();
   
-    // ask about input file and watermark type
-    const options = await inquirer.prompt([{
+    // ask about input image
+    const inputImage = await inquirer.prompt([{
       name: 'inputImage',
       type: 'input',
       message: 'What file do you want to mark?',
       default: 'test.jpg',
     }, {
+      name: 'edit',
+      type: 'confirm',
+      message: 'do you want to edit this file?',
+      default: false,
+    }]);
+
+    // if edit ask about actions
+    let action;
+    if (inputImage.edit) {
+      const editOptions = await inquirer.prompt ([{
+        name: 'action',
+        type: 'list',
+        choices: ['Make image brighter', 'Increase contrast', 'Make image b & w', 'Invert image'],
+      }]);
+
+      switch (editOptions.action) {
+        case 'Make image brighter':
+          action = image => image.brightness(0.3);
+          break;
+        case 'Increase contrast':
+          action = image => image.contrast(0.3);
+          break;
+        case 'Make image b & w':
+          action = image => image.greyscale();
+          break;
+        case 'Invert image':
+          action = image => image.invert();
+          break;
+        default:
+          action = null;
+      }
+    }
+
+    //ask about watermark type
+    const options = await inquirer.prompt([{
       name: 'watermarkType',
       type: 'list',
       choices: ['Text watermark', 'Image watermark'],
     }]);
 
-    const inputFilePath = './img/' + options.inputImage;
+    const inputFilePath = './img/' + inputImage.inputImage;
 
     if(options.watermarkType === 'Text watermark') {
       const text = await inquirer.prompt([{
@@ -82,7 +119,7 @@ const addImageWatermarkToImage = async function(inputFile, outputFile, watermark
       options.watermarkText = text.value;
 
       if (fs.existsSync(inputFilePath)) {
-        addTextWatermarkToImage(inputFilePath, './img/' + prepareOutputFilename(options.inputImage), options.watermarkText);
+        addTextWatermarkToImage(inputFilePath, './img/' + prepareOutputFilename(inputImage.inputImage), options.watermarkText, action);
       } else console.log('Something went wrong... Try again');
     }
     else {
@@ -96,7 +133,7 @@ const addImageWatermarkToImage = async function(inputFile, outputFile, watermark
       const watermarkPath = './img' + options.watermarkImage;
 
       if (fs.existsSync(inputFilePath) && fs.existsSync(watermarkPath)) {
-        addImageWatermarkToImage(inputFilePath, './img/' + prepareOutputFilename(options.inputImage), watermarkPath);
+        addImageWatermarkToImage(inputFilePath, './img/' + prepareOutputFilename(inputImage.inputImage), watermarkPath, action);
       } else console.log('Something went wrong... Try again');
     }
   };
